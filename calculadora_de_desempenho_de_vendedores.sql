@@ -1,17 +1,33 @@
-DELIMITER $$ -- NAS STORED PROCEDURE É NECESSARIO USARUM DELIMITAOR DIFERENTE DO ; POIS DENTRO DE UMA STORED PROCEDURE PODEMOS TER DIVERSOS COMANDO SQL E CADA COMANDO FINALIZA COM ;
-
-	CREATE PROCEDURE nome_procedure(IN parametro_entrada INT, OUT parametro_saida DECIMAL(10,2)) -- UMA PROCEDURE ACEITA VARIOS PARMETROS QUE PODEM SER DE ENTRADA E DE SAIDA CADA UM COM SEU TIPO ESPECIFICADO
-																								 -- IN PARA ENTRADA E OUT PARA SAIDA
-	
+DROP PROCEDURE `calcular_bonus`;
+DELIMITER $$
+	CREATE PROCEDURE calcular_bonus(IN id_seller INT, OUT accumulated_monthly_bonus DECIMAL(10,2))
 	BEGIN
-		
-		-- AQUI CRIAMOS TODA NOSSA LOGICA DA STORED PROCEDURE
-		-- DICAS DE ESTUDOS BASICO PARA CRIAR UMA LOGICA DENTRO DAS PROCEDURES: LOOPS, CONDIÇÃO, CURSOR, VARIAVEIS
-		
-	END $$ -- O MOTIVO DE TERMOS ALTERADO O DELIMITADOR, JUSTAMENTE PARA ESPECIFICAR O DELIMITADOR DA PROCEDURE
-	
-DELIMITER ; -- VOLTAMOS O NOSSO DELIMITADOR PARA ;
+		DECLARE done BOOLEAN DEFAULT FALSE;
+		DECLARE sale_value DECIMAL(10,2) DEFAULT 0;
+        DECLARE percent INT DEFAULT 5;
+		DECLARE percent_value DECIMAL(10,2) DEFAULT 0;
+        DECLARE total_sale DECIMAL(10,2) DEFAULT 0;
+		DECLARE sales_values CURSOR FOR SELECT ValorVenda FROM vendas WHERE VendedorID = id_seller;
+		DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+        SET accumulated_monthly_bonus = 0;
+        SELECT SUM(ValorVenda) INTO total_sale FROM vendas WHERE VendedorID = id_seller;
+		OPEN sales_values;
+			cursor_loop: LOOP
+				FETCH sales_values INTO sale_value;  
+				IF done THEN
+					LEAVE cursor_loop;
+                END IF;   
+                IF total_sale > 50000 THEN
+					SET percent = 7;
+                END IF;
+                SET percent_value = percent * sale_value / 100;
+                SET accumulated_monthly_bonus = accumulated_monthly_bonus + percent_value;
+            END LOOP;
+		CLOSE sales_values;
+	END $$
+DELIMITER ;
 
-CALL nome_procedure(1, @variavel_saida); -- CHMAMAMOS A PROCEDURE COM  CALL, E DEFINIMOS UMA VARIAVEL QUE IRÁ RECBER NOSSO PRAMETRO DE SAIDA
+CALL calcular_bonus(4, @bonus);
+SELECT @bonus;
 
-SELECT @variavel_saida;
+SELECT * FROM vendas;
